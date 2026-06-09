@@ -1,5 +1,6 @@
 menu "E-Ink Display Configuration"
 
+
 config SPI_FREQUENCY
     int "SPI Frequency in MHZ"
     range 1 20
@@ -8,30 +9,26 @@ config SPI_FREQUENCY
         Choose a value between 1-20
 config EINK_PIN_MOSI
     int "MOSI Pin"
-    default 23
+    default 18
 
 config EINK_PIN_SCLK
     int "SCLK Pin"
-    default 18
+    default 19
 
 config EINK_PIN_CS
     int "CS Pin"
-    default 5
+    default 17
 
 config EINK_PIN_RST
     int "RST Pin"
-    default 3
+    default 16
 
 config EINK_PIN_DC
     int "DC Pin"
-    default 21
-
-config EINK_PIN_RST
-    int "RST Pin"
-    default 22
+    default 20
 
 config EINK_PIN_BUSY
     int "BUSY Pin"
-    default 4
+    default 23
 
 endmenu

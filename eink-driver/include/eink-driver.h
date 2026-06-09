@@ -5,9 +5,11 @@
 extern "C" {
 #endif
 
-// Display resolution
-#define EPD_3IN97_WIDTH       800
-#define EPD_3IN97_HEIGHT      480
+#define DISPLAY_WIDTH 800
+#define DISPLAY_HEIGHT 480
+
+esp_err_t eink_init(void);
+esp_err_t eink_test(void);
 
 #ifdef __cplusplus
 }

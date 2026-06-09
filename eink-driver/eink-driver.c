@@ -6,8 +6,9 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "sdkconfig.h"
+#include "esp_timer.h"
 
-#include "eink.h"
+#include "eink-driver.h"
 
 static const char *TAG = "EINK";
 static spi_device_handle_t eink_spi = NULL;
@@ -29,7 +30,7 @@ static spi_device_handle_t eink_spi = NULL;
 #define PIN_BUSY CONFIG_EINK_PIN_BUSY
 #define PIN_DC   CONFIG_EINK_PIN_DC
 
-#define SPI_HOST CONFIG_EINK_SPI_HOST
+#define SPI_HOST SPI2_HOST
 
 /*
  * Helper Functions
@@ -60,8 +61,7 @@ static esp_err_t eink_write_cmd(uint8_t cmd){
     return spi_device_transmit(eink_spi, &t);
 }
 
-static esp_err_t eink_write_data(const uint8_t *data, size_t len)
-{
+static esp_err_t eink_write_data(const uint8_t *data, size_t len){
     gpio_set_level(PIN_DC, 1);
 
     spi_transaction_t t = {
@@ -72,8 +72,7 @@ static esp_err_t eink_write_data(const uint8_t *data, size_t len)
     return spi_device_transmit(eink_spi, &t);
 }
 
-static esp_err_t eink_write_data_single(const uint8_t data)
-{
+static esp_err_t eink_write_data_single(const uint8_t data){
     gpio_set_level(PIN_DC, 1);
 
     spi_transaction_t t = {
@@ -86,7 +85,6 @@ static esp_err_t eink_write_data_single(const uint8_t data)
 
 
 
--------
 
 esp_err_t eink_init(void) {
     static bool bus_inited = false;   // tracks if SPI bus was initialized
@@ -102,8 +100,12 @@ esp_err_t eink_init(void) {
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE,
     };
-    ESP_RETURN_ON_ERROR(gpio_config(&out_cfg), TAG, "output gpio config failed");
-
+    ret = gpio_config(&out_cfg);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "output gpio config failed: %s",
+                 esp_err_to_name(ret));
+        return ret;
+    }
     gpio_config_t in_cfg = {
         .pin_bit_mask = (1ULL << PIN_BUSY),
         .mode = GPIO_MODE_INPUT,
@@ -111,8 +113,12 @@ esp_err_t eink_init(void) {
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE,
     };
-    ESP_RETURN_ON_ERROR(gpio_config(&in_cfg), TAG, "busy gpio config failed");
-
+    ret = gpio_config(&in_cfg);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "busy gpio config failed: %s",
+                 esp_err_to_name(ret));
+        return ret;
+    }
     /* Default GPIO states */
     gpio_set_level(PIN_RST, 1);
     gpio_set_level(PIN_DC, 1);
@@ -129,7 +135,9 @@ esp_err_t eink_init(void) {
 
             .max_transfer_sz = 4096,
         };
-
+ESP_LOGI(TAG, "SPI_HOST=%d", SPI_HOST);
+ESP_LOGI(TAG, "SPI2_HOST=%d", SPI2_HOST);
+ESP_LOGI(TAG, "SPI_DMA_CH_AUTO=%d", SPI_DMA_CH_AUTO);
         ret = spi_bus_initialize(SPI_HOST, &buscfg, SPI_DMA_CH_AUTO);
         if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
             ESP_LOGE(TAG, "spi_bus_initialize failed: %s", esp_err_to_name(ret));
@@ -189,4 +197,21 @@ static esp_err_t eink_turn_on_display(uint8_t mode)
 
     return eink_wait_busy();
 }
+
+static esp_err_t eink_initialize(void){
+    eink_reset();
+    EINK_CHECK(eink_wait_busy());
+    EINK_CHECK(eink_write_cmd(0x12)); //Notes as SWRESET
+    EINK_CHECK(eink_wait_busy());
+    EINK_CHECK(eink_write_cmd(0x18));
+    EINK_CHECK(eink_write_data_single(0x80));
+    EINK_CHECK(eink_write_cmd(0x0C));
+    EINK_CHECK(eink_write_data((uint8_t[]){0xAF,0xC7,0xC3,0xC0,0x80},5));
+
+    EINK_CHECK(eink_write_cmd(0x01));
+    EINK_CHECK(eink_write_data_single((0x00)));
+    EINK_CHECK(eink_write_data_single(0x80));
+}
+
+
 
