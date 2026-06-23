@@ -135,9 +135,9 @@ esp_err_t eink_init(void) {
 
             .max_transfer_sz = 4096,
         };
-ESP_LOGI(TAG, "SPI_HOST=%d", SPI_HOST);
-ESP_LOGI(TAG, "SPI2_HOST=%d", SPI2_HOST);
-ESP_LOGI(TAG, "SPI_DMA_CH_AUTO=%d", SPI_DMA_CH_AUTO);
+        ESP_LOGI(TAG, "SPI_HOST=%d", SPI_HOST);
+        ESP_LOGI(TAG, "SPI2_HOST=%d", SPI2_HOST);
+        ESP_LOGI(TAG, "SPI_DMA_CH_AUTO=%d", SPI_DMA_CH_AUTO);
         ret = spi_bus_initialize(SPI_HOST, &buscfg, SPI_DMA_CH_AUTO);
         if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
             ESP_LOGE(TAG, "spi_bus_initialize failed: %s", esp_err_to_name(ret));
@@ -149,7 +149,7 @@ ESP_LOGI(TAG, "SPI_DMA_CH_AUTO=%d", SPI_DMA_CH_AUTO);
     /* --- SPI Device Initialization (recreate if NULL) --- */
     if (eink_spi == NULL) {
         spi_device_interface_config_t devcfg = {
-            .clock_speed_hz = 4 * 1000 * 1000, // 4 MHz
+            .clock_speed_hz = CONFIG_SPI_FREQUENCY * 1000 * 1000,
             .mode = 0,
             .spics_io_num = PIN_CS,
             .queue_size = 1,
@@ -170,6 +170,7 @@ ESP_LOGI(TAG, "SPI_DMA_CH_AUTO=%d", SPI_DMA_CH_AUTO);
 
 static esp_err_t eink_wait_busy(void){
     int64_t start = esp_timer_get_time() / 1000;
+    vTaskDelay(pdMS_TO_TICKS(100));
 
     while (eink_is_busy()) {
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -180,6 +181,8 @@ static esp_err_t eink_wait_busy(void){
         }
     }
 
+    int64_t elapsed = (esp_timer_get_time() / 1000) - start;
+    ESP_LOGI(TAG, "BUSY released after %lld.%03llds", elapsed / 1000, elapsed % 1000);
     return ESP_OK;
 }
 
@@ -198,7 +201,11 @@ static esp_err_t eink_turn_on_display(uint8_t mode)
     return eink_wait_busy();
 }
 
-static esp_err_t eink_initialize(void){
+/*
+ *init functions 
+ */
+
+esp_err_t eink_initialize(void){
     eink_reset();
     EINK_CHECK(eink_wait_busy());
     EINK_CHECK(eink_write_cmd(0x12)); //Notes as SWRESET
@@ -206,12 +213,173 @@ static esp_err_t eink_initialize(void){
     EINK_CHECK(eink_write_cmd(0x18));
     EINK_CHECK(eink_write_data_single(0x80));
     EINK_CHECK(eink_write_cmd(0x0C));
-    EINK_CHECK(eink_write_data((uint8_t[]){0xAF,0xC7,0xC3,0xC0,0x80},5));
+    EINK_CHECK(eink_write_data((uint8_t[]){0xAE,0xC7,0xC3,0xC0,0x80},5));
 
-    EINK_CHECK(eink_write_cmd(0x01));
-    EINK_CHECK(eink_write_data_single((0x00)));
-    EINK_CHECK(eink_write_data_single(0x80));
+    EINK_CHECK(eink_write_cmd(0x01)); //Driver output control
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)%256));
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)/256));
+    EINK_CHECK(eink_write_data_single(0x02));
+
+    EINK_CHECK(eink_write_cmd(0x3C)); //Border Waveform
+    EINK_CHECK(eink_write_data_single(0x01));
+
+    EINK_CHECK(eink_write_cmd(0x11)); //Data enty mode
+    EINK_CHECK(eink_write_data_single(0x01));
+
+    EINK_CHECK(eink_write_cmd(0x44)); //Set Ram-X address start/end location
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+    EINK_CHECK(eink_write_data_single((DISPLAY_WIDTH-1)%256));
+    EINK_CHECK(eink_write_data_single((DISPLAY_WIDTH-1)/256));
+
+    EINK_CHECK(eink_write_cmd(0x45)); //Set Ram-Y address start/end location
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)%256));
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)/256));
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+
+    EINK_CHECK(eink_write_cmd(0x4E));
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+    EINK_CHECK(eink_write_cmd(0x4F));
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+    EINK_CHECK(eink_wait_busy());
+    return ESP_OK;
+
 }
 
+esp_err_t eink_initialize_fast(void){
+    eink_reset();
+    EINK_CHECK(eink_wait_busy());
+    EINK_CHECK(eink_write_cmd(0x12)); //Notes as SWRESET
+    EINK_CHECK(eink_wait_busy());
+    EINK_CHECK(eink_write_cmd(0x0C));
+    EINK_CHECK(eink_write_data((uint8_t[]){0xAE,0xC7,0xC3,0xC0,0x80},5));
+
+    EINK_CHECK(eink_write_cmd(0x01)); //Driver output control
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)%256));
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)/256));
+    EINK_CHECK(eink_write_data_single(0x02));
+
+    EINK_CHECK(eink_write_cmd(0x3C)); //Border Waveform
+    EINK_CHECK(eink_write_data_single(0x01));
+
+    EINK_CHECK(eink_write_cmd(0x11)); //Data enty mode
+    EINK_CHECK(eink_write_data_single(0x01));
+
+    EINK_CHECK(eink_write_cmd(0x44)); //Set Ram-X address start/end location
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+    EINK_CHECK(eink_write_data_single((DISPLAY_WIDTH-1)%256));
+    EINK_CHECK(eink_write_data_single((DISPLAY_WIDTH-1)/256));
+
+    EINK_CHECK(eink_write_cmd(0x45)); //Set Ram-Y address start/end location
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)%256));
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)/256));
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+
+    EINK_CHECK(eink_write_cmd(0x4E));
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+    EINK_CHECK(eink_write_cmd(0x4F));
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+    EINK_CHECK(eink_wait_busy());
 
 
+    EINK_CHECK(eink_write_cmd(0x3C)); //Border Waveform
+    EINK_CHECK(eink_write_data_single(0x01));
+
+    EINK_CHECK(eink_write_cmd(0x18));
+    EINK_CHECK(eink_write_data_single(0x80));
+
+    EINK_CHECK(eink_write_cmd(0x1A)); //Fast(1.5S?)
+    EINK_CHECK(eink_write_data_single(0x6A));
+    return ESP_OK;
+}
+
+esp_err_t eink_initialize_gray(void){
+    eink_reset();
+    EINK_CHECK(eink_wait_busy());
+    EINK_CHECK(eink_write_cmd(0x12)); //Notes as SWRESET
+    EINK_CHECK(eink_wait_busy());
+    EINK_CHECK(eink_write_cmd(0x0C));
+    EINK_CHECK(eink_write_data((uint8_t[]){0xAE,0xC7,0xC3,0xC0,0x80},5));
+
+    EINK_CHECK(eink_write_cmd(0x01)); //Driver output control
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)%256));
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)/256));
+    EINK_CHECK(eink_write_data_single(0x02));
+
+
+    EINK_CHECK(eink_write_cmd(0x11)); //Data enty mode
+    EINK_CHECK(eink_write_data_single(0x01));
+
+    EINK_CHECK(eink_write_cmd(0x44)); //Set Ram-X address start/end location
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+    EINK_CHECK(eink_write_data_single((DISPLAY_WIDTH-1)%256));
+    EINK_CHECK(eink_write_data_single((DISPLAY_WIDTH-1)/256));
+
+    EINK_CHECK(eink_write_cmd(0x45)); //Set Ram-Y address start/end location
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)%256));
+    EINK_CHECK(eink_write_data_single((DISPLAY_HEIGHT-1)/256));
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+
+    EINK_CHECK(eink_write_cmd(0x4E)); //set Ram x address count to 0
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+    EINK_CHECK(eink_write_cmd(0x4F)); //set Ram y address count to 0x199
+    EINK_CHECK(eink_write_data((uint8_t[]){0x00,0x00},2));
+    EINK_CHECK(eink_wait_busy());
+
+    EINK_CHECK(eink_write_cmd(0x3C)); //Border Waveform
+    EINK_CHECK(eink_write_data_single(0x01));
+
+    EINK_CHECK(eink_write_cmd(0x18));
+    EINK_CHECK(eink_write_data_single(0x80));
+
+    EINK_CHECK(eink_write_cmd(0x1A)); //4Gray
+    EINK_CHECK(eink_write_data_single(0x5A));
+    return ESP_OK;
+
+}
+
+/*Clear screen
+ *
+ * */
+
+esp_err_t eink_clear(void){
+    uint16_t width ,height;
+    width = (DISPLAY_WIDTH%8==0)?(DISPLAY_WIDTH/8): (DISPLAY_WIDTH/8+1);
+    height = DISPLAY_HEIGHT;
+    EINK_CHECK(eink_write_cmd(0x24));
+    for(uint16_t j=0;j<height;j++){
+        for(uint16_t i=0;i<width;i++){
+            EINK_CHECK(eink_write_data_single(0xFF));
+        }
+       vTaskDelay(pdMS_TO_TICKS(1)); 
+    }
+    EINK_CHECK(eink_write_cmd(0x26)); //Vendor does this and i dont see in docs bruh
+    for(uint16_t j=0;j<height;j++){
+        for(uint16_t i=0;i<width;i++){
+            EINK_CHECK(eink_write_data_single(0xFF));
+        }
+       vTaskDelay(pdMS_TO_TICKS(1)); 
+    }   
+    EINK_CHECK(eink_turn_on_display(0xF7));
+    return ESP_OK;
+}
+esp_err_t eink_clear_black(void){
+    uint16_t width ,height;
+    width = (DISPLAY_WIDTH%8==0)?(DISPLAY_WIDTH/8): (DISPLAY_WIDTH/8+1);
+    height = DISPLAY_HEIGHT;
+    EINK_CHECK(eink_write_cmd(0x24));
+    for(uint16_t j=0;j<height;j++){
+        for(uint16_t i=0;i<width;i++){
+            EINK_CHECK(eink_write_data_single(0x00));
+        }
+       vTaskDelay(pdMS_TO_TICKS(1)); 
+    }
+    EINK_CHECK(eink_write_cmd(0x26));
+    for(uint16_t j=0;j<height;j++){
+        for(uint16_t i=0;i<width;i++){
+            EINK_CHECK(eink_write_data_single(0x00));
+        }
+       vTaskDelay(pdMS_TO_TICKS(1)); 
+    }   
+    EINK_CHECK(eink_turn_on_display(0xF7));
+    return ESP_OK;
+}

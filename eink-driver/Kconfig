@@ -4,7 +4,7 @@ menu "E-Ink Display Configuration"
 config SPI_FREQUENCY
     int "SPI Frequency in MHZ"
     range 1 20
-    default 4
+    default 1
     help
         Choose a value between 1-20
 config EINK_PIN_MOSI
