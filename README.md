@@ -4,7 +4,13 @@ I will be trying to port the Arduino Example driver to ESP-IDF
 
 Current Progress:
 - Working BUSY pin.
-- Working Screen clear Black and White both.
+- Working
+1. Normal
+2. 4Gray
+3. Fast
+4. Send Image bytes
+5. Display stuff
+- Doxygen Comments using AI
 
 Progress Plan:
 - Make current Driver partially compatible with ESP-IDF 
@@ -14,4 +20,5 @@ Progress Plan:
 Link for the display
 https://www.waveshare.com/wiki/3.97inch_e-Paper_HAT+_Manual#Overview
 
-Max Frequency according to datasheet is 20 Mhz 
+
+Max Frequency according to datasheet is 20 Mhz currently working using 1k Hz 
