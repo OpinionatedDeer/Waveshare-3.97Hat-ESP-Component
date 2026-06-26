@@ -5,15 +5,15 @@ I will be trying to port the Arduino Example driver to ESP-IDF
 Current Progress:
 - Working BUSY pin.
 - Working
-1. Normal
-2. 4Gray
-3. Fast
-4. Send Image bytes
-5. Display stuff
+    1. Normal
+    2. 4Gray
+    3. Fast
+    4. Send Image bytes
+    5. Display stuff
 - Doxygen Comments using AI
 
 Progress Plan:
-- Make current Driver partially compatible with ESP-IDF 
+- ~~Make current Driver partially compatible with ESP-IDF ~~
 - Remove stuff
 - Make it simpler and closer to ESP-IDF 
 
