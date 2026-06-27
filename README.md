@@ -13,8 +13,8 @@ Current Progress:
 - Doxygen Comments using AI
 
 Progress Plan:
-- ~~Make current Driver partially compatible with ESP-IDF ~~
-- Remove stuff
+- ~~Make current Driver partially compatible with ESP-IDF~~
+- ~~Remove stuff~~
 - Make it simpler and closer to ESP-IDF 
 
 Link for the display
