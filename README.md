@@ -24,5 +24,10 @@ https://www.waveshare.com/wiki/3.97inch_e-Paper_HAT+_Manual#Overview
 - Max Frequency according to datasheet is 20 Mhz currently working using 1k Hz 
 - Recovery from sleep is broken
 ---
-# Images
+# Assests
+
+
+- ![Schema](docs/assets/Schema.svg)
+- Testing in different repo [link](https://github.com/OpinionatedDeer/Eink-test)
+- [Test Display Video](docs/assets/TestDisplay.mp4)
 
