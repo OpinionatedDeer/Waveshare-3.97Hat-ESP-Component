@@ -1,5 +1,6 @@
+name: opinionateddeer/waveshare-397hat
 version: "0.9.4"
-description: Driver for the Waveshare 3.97" ESP32-S3 e-Paper HAT
+description: Driver for the Waveshare 3.97" e-Paper HAT
 license: MIT
 url: https://github.com/OpinionatedDeer/Waveshare-3.97Hat-ESP-Component
 
