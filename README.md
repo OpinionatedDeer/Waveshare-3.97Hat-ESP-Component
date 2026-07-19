@@ -10,7 +10,7 @@ I will be trying to port the Arduino Example driver to ESP-IDF
     3. Fast
     4. Send Image bytes
     5. Display stuff
-- Doxygen Comments using AI
+- Doxygen Comments 
 ---
 # Progress Plan:
 - ~~Make current Driver partially compatible with ESP-IDF~~
@@ -22,7 +22,11 @@ https://www.waveshare.com/wiki/3.97inch_e-Paper_HAT+_Manual#Overview
 ---
 # Notes
 - Max Frequency according to datasheet is 20 Mhz currently working using 1k Hz 
+<<<<<<< HEAD
 - Recovery from sleep is broken (WIP)
+=======
+- Recovery from sleep is broken (wait 3 hours for capacitor to discharge before reuse)
+>>>>>>> dbf67bf (Trial to make a esp-idf component)
 ---
 # Assests
 
