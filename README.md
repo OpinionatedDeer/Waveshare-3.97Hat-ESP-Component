@@ -31,3 +31,5 @@ https://www.waveshare.com/wiki/3.97inch_e-Paper_HAT+_Manual#Overview
 - Testing in different repo [link](https://github.com/OpinionatedDeer/Eink-test)
 - Download [Test Display Video](docs/assets/TestDisplay.mp4)
 
+# How to Use
+- Run ```idf.py add-dependency "opinionateddeer/waveshare-397hat^0.9.4"```
